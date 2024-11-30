@@ -10,12 +10,12 @@ export interface ChatGPTResponse {
 
 export interface Choice {
     index:         number;
-    message:       Message;
+    message: Messages;
     logprobs:      null;
     finish_reason: string;
 }
 
-export interface Message {
+export interface Messages {
     role:    string;
     content: string;
     refusal: null;
@@ -40,3 +40,15 @@ export interface PromptTokensDetails {
     cached_tokens: number;
     audio_tokens:  number;
 }
+
+export type Message = {
+    id: string;
+    type: 'user' | 'assistant' | 'system';
+    text: string;
+    image?: string | null;
+};
+
+export type Chat = {
+    id: string;
+    title: string;
+};
