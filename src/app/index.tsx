@@ -2,8 +2,9 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import ChatScreen from '../ChatScreen';
 import {createStaticNavigation} from '@react-navigation/native';
 import HistoryScreen from '../HistoryScreen';
+import {RootStackParamList} from '../@types';
 
-const RootStack = createNativeStackNavigator({
+const RootStack = createNativeStackNavigator<RootStackParamList>({
   initialRouteName: 'history',
   // initialRouteName: 'chat',
   screens: {

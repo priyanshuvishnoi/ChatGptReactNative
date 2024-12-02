@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
   StyleSheet,
   Text,
@@ -19,42 +20,44 @@ type Props = {
 
 export default function SaveChatDialog(props: Props) {
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={props.saveDialogVisible}
-      onRequestClose={() => props.setSaveDialogVisible(false)}>
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Save Chat</Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: props.theme.colors.surface,
-                color: props.theme.colors.text,
-              },
-            ]}
-            placeholder="Enter title here"
-            placeholderTextColor={props.theme.colors.text}
-            value={props.chatTitle}
-            onChangeText={props.setChatTitle}
-          />
-          <View style={styles.modalButtonContainer}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalCancelButton]}
-              onPress={() => props.setSaveDialogVisible(false)}>
-              <Text style={styles.modalButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton]}
-              onPress={props.saveChat}>
-              <Text style={styles.modalButtonText}>Save</Text>
-            </TouchableOpacity>
+    <KeyboardAvoidingView>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={props.saveDialogVisible}
+        onRequestClose={() => props.setSaveDialogVisible(false)}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Save Chat</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: props.theme.colors.surface,
+                  color: props.theme.colors.text,
+                },
+              ]}
+              placeholder="Enter title here"
+              placeholderTextColor={props.theme.colors.text}
+              value={props.chatTitle}
+              onChangeText={props.setChatTitle}
+            />
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => props.setSaveDialogVisible(false)}>
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton]}
+                onPress={props.saveChat}>
+                <Text style={styles.modalButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
 

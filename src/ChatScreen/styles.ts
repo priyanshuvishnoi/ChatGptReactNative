@@ -31,13 +31,14 @@ export const styles = StyleSheet.create({
         padding: 10,
         borderTopWidth: 1,
         borderColor: '#ccc',
+        paddingBottom: 10
     },
     cameraIcon: {
         marginHorizontal: 5,
     },
     input: {
         flex: 1,
-        height: 40,
+        height: 50,
         paddingHorizontal: 10,
         borderWidth: 1,
         borderRadius: 20,

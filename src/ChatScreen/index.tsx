@@ -1,4 +1,6 @@
 import Clipboard from '@react-native-clipboard/clipboard';
+import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useRef, useState} from 'react';
 import {
   Alert,
@@ -21,15 +23,13 @@ import {
   MD3DarkTheme,
   Provider as PaperProvider,
 } from 'react-native-paper';
-import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
-import {Chat, ChatGPTResponse, Message} from '../@types';
+import {ChatGPTResponse, Message, RootStackParamList} from '../@types';
 import {ImagePickerModal} from '../components/ImagePickerModal';
 import SaveChatDialog from '../components/SaveChatDialog';
 import TypingIndicator from '../components/TypingIndicator';
 import client from '../utils/client';
 import * as DB from '../utils/db';
 import {styles} from './styles';
-import {useNavigation, useRoute} from '@react-navigation/native';
 
 const LightTheme = {
   ...DefaultTheme,
@@ -54,8 +54,9 @@ const DarkTheme = {
 };
 
 export default function ChatScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'chat'>>();
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -71,7 +72,6 @@ export default function ChatScreen() {
   const [base64String, setBase64String] = useState<string | null>(null);
   const [saveDialogVisible, setSaveDialogVisible] = useState(false);
   const [chatTitle, setChatTitle] = useState('');
-  const [chats, setChats] = useState<Chat[]>([]);
 
   const listRef = useRef<FlatList>(null);
   const inputContainerRef = useRef<View>(null);
@@ -83,8 +83,10 @@ export default function ChatScreen() {
 
   const initDb = async () => {
     // Create `chat_sessions` table
-    await DB.getChats();
-    await DB.getMessages();
+    const chatId = route.params?.id;
+    if (!chatId) return;
+    const messages = await DB.getMessages(chatId);
+    setMessages(messages);
   };
 
   useEffect(() => {
@@ -115,10 +117,35 @@ export default function ChatScreen() {
     setInputText('');
     listRef.current?.scrollToEnd();
 
-    const messagesToSend: any[] = messages.map(m => ({
-      role: m.type,
-      content: m.text,
-    }));
+    const messagesToSend: any[] = messages.map(m => {
+      if (m.image) {
+        return {
+          role: m.type,
+          content: [
+            {
+              type: 'text',
+              text: m.text,
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${m.image}`,
+              },
+            },
+          ],
+        };
+      } else {
+        return {
+          role: m.type,
+          content: [
+            {
+              type: 'text',
+              text: m.text,
+            },
+          ],
+        };
+      }
+    });
 
     if (base64String) {
       messagesToSend.push({
@@ -263,10 +290,22 @@ export default function ChatScreen() {
   };
 
   const clearChat = () => {
-    setMessages(prevMessages =>
-      prevMessages.filter(message => message.type === 'system'),
-    );
-    setBase64String(null);
+    Alert.alert('Clear chat', 'Are you sure you want to clear this chat?', [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Clear',
+        onPress: () => {
+          setMessages(prevMessages =>
+            prevMessages.filter(message => message.type === 'system'),
+          );
+          setBase64String(null);
+        },
+        style: 'destructive',
+      },
+    ]);
   };
 
   const saveChat = async () => {
@@ -275,175 +314,128 @@ export default function ChatScreen() {
       return;
     }
 
-    const db = await DB.getDB();
-    const chatSessionId = Date.now().toString();
-
-    await db.executeSql(
-      'INSERT INTO chat_sessions (id, title, created_at) VALUES (?, ?, ?)',
-      [chatSessionId, chatTitle, new Date().toISOString()],
-    );
-    const filteredMessages = messages.filter(m => m.type !== 'system');
-    const promises = [];
-    for (const message of filteredMessages) {
-      promises.push(
-        db.executeSql(
-          'INSERT INTO messages (id, type, text, created_at, image) VALUES (?, ?, ?, ?, ?)',
-          [
-            message.id,
-            message.type,
-            message.text,
-            new Date().toISOString(),
-            message.image ?? '',
-          ],
-        ),
-      );
+    try {
+      await DB.saveChatMessages(chatTitle, messages);
+      Alert.alert('Success', 'Chat saved successfully!');
+    } catch (e) {
+      console.log(e);
+      Alert.alert('Error', 'Something went wrong');
+    } finally {
+      setSaveDialogVisible(false);
+      setChatTitle('');
     }
-    await Promise.all(promises);
-
-    // db.transaction(tx => {
-    //   tx.executeSql(
-    //     'INSERT INTO chat_sessions (id, title, created_at) VALUES (?, ?, ?)',
-    //     [chatSessionId, chatTitle, new Date().toISOString()],
-    //   )
-    //     .then(d => console.log(d))
-    //     .catch(e => console.log(e));
-
-    //   const filteredMessages = messages.filter(m => m.type !== 'system');
-
-    //   for (const message of filteredMessages) {
-    //     tx.executeSql(
-    //       'INSERT INTO messages (id, type, text, created_at, image) VALUES (?, ?, ?, ?, ?)',
-    //       [
-    //         message.id,
-    //         message.type,
-    //         message.text,
-    //         new Date().toISOString(),
-    //         message.image,
-    //       ],
-    //     )
-    //       .then(d => console.log(d))
-    //       .catch(e => console.log(e));
-    //   }
-    //   DB.getChats();
-    //   DB.getMessages();
-    // });
-    Alert.alert('Success', 'Chat saved successfully!');
-    setSaveDialogVisible(false);
-    setChatTitle('');
   };
 
   return (
     <PaperProvider theme={theme}>
-      <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
-        <SafeAreaProvider>
-          <KeyboardAvoidingView
-            style={[
-              styles.container,
-              {backgroundColor: theme.colors.background},
-            ]}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}>
-            {/* App Header */}
-            <Appbar.Header theme={theme}>
-              <Appbar.BackAction onPress={() => navigation.goBack()} />
-              <Appbar.Action icon="theme-light-dark" onPress={toggleTheme} />
-              <Appbar.Content title="ChatGPT" />
-              <Appbar.Action
-                icon="content-save-outline"
-                onPress={() => setSaveDialogVisible(true)}
-              />
-              <Appbar.Action
-                icon="delete-outline"
-                onPress={clearChat}
-                color="red"
-              />
-            </Appbar.Header>
+      <KeyboardAvoidingView
+        style={[styles.container, {backgroundColor: theme.colors.background}]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        {/* App Header */}
+        <Appbar.Header theme={theme}>
+          <Appbar.BackAction onPress={() => navigation.goBack()} />
+          <Appbar.Action icon="theme-light-dark" onPress={toggleTheme} />
+          <Appbar.Content title="ChatGPT" />
+          <Appbar.Action
+            icon="content-save-outline"
+            onPress={() => {
+              if (route.params?.id) {
+                DB.updateChat(route.params.id, messages).then(() =>
+                  Alert.alert('Success', 'Chat updated successfully!'),
+                );
+                return;
+              }
 
-            {/* Chat Area */}
-            <FlatList
-              data={messages.filter(m => m.type !== 'system')}
-              keyExtractor={item => item.id}
-              renderItem={renderMessage}
-              contentContainerStyle={[
-                styles.chatArea,
-                {backgroundColor: theme.colors.background},
-              ]}
-              ref={listRef}
+              setSaveDialogVisible(true);
+            }}
+          />
+          <Appbar.Action
+            icon="delete-outline"
+            onPress={clearChat}
+            color="red"
+          />
+        </Appbar.Header>
+
+        {/* Chat Area */}
+        <FlatList
+          data={messages.filter(m => m.type !== 'system')}
+          keyExtractor={item => item.id}
+          renderItem={renderMessage}
+          contentContainerStyle={[
+            styles.chatArea,
+            {backgroundColor: theme.colors.background},
+          ]}
+          ref={listRef}
+        />
+        {isLoading && <TypingIndicator />}
+
+        {/* Input Field */}
+        <View
+          style={[
+            styles.inputContainer,
+            {backgroundColor: theme.colors.surface},
+          ]}
+          ref={inputContainerRef}>
+          {!base64String ? (
+            <IconButton
+              icon="camera"
+              size={24}
+              onPress={() => {
+                setBase64String(null);
+                setImageModalVisible(true);
+              }}
+              style={styles.cameraIcon}
             />
-            {isLoading && <TypingIndicator />}
-
-            {/* Input Field */}
-            <View
-              style={[
-                styles.inputContainer,
-                {backgroundColor: theme.colors.surface},
-              ]}
-              ref={inputContainerRef}>
-              {!base64String ? (
-                <IconButton
-                  icon="camera"
-                  size={24}
-                  onPress={() => {
-                    setBase64String(null);
-                    setImageModalVisible(true);
-                  }}
-                  style={styles.cameraIcon}
-                />
-              ) : (
-                <View style={[styles.cameraIcon, {paddingInline: 10}]}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setBase64String(null);
-                      setImageModalVisible(true);
-                    }}>
-                    <Image
-                      source={{uri: `data:image/jpeg;base64,${base64String}`}}
-                      style={{width: 30, height: 30}}
-                    />
-                  </TouchableOpacity>
-                </View>
-              )}
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    color: theme.colors.text,
-                  },
-                ]}
-                placeholder="Type a message..."
-                placeholderTextColor={theme.colors.text}
-                value={inputText}
-                onChangeText={setInputText}
-                ref={inputRef}
-              />
+          ) : (
+            <View style={[styles.cameraIcon, {paddingInline: 10}]}>
               <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  {backgroundColor: theme.colors.primary},
-                ]}
-                onPress={handleSend}>
-                <Text style={styles.sendButtonText}>Send</Text>
+                onPress={() => {
+                  setBase64String(null);
+                  setImageModalVisible(true);
+                }}>
+                <Image
+                  source={{uri: `data:image/jpeg;base64,${base64String}`}}
+                  style={{width: 30, height: 30}}
+                />
               </TouchableOpacity>
             </View>
+          )}
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.colors.surface,
+                color: theme.colors.text,
+              },
+            ]}
+            placeholder="Type a message..."
+            placeholderTextColor={theme.colors.text}
+            value={inputText}
+            onChangeText={setInputText}
+            ref={inputRef}
+          />
+          <TouchableOpacity
+            style={[styles.sendButton, {backgroundColor: theme.colors.primary}]}
+            onPress={handleSend}>
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
+        </View>
 
-            <ImagePickerModal
-              imageModalVisible={imageModalVisible}
-              setImageModalVisible={setImageModalVisible}
-              handleCamera={handleCamera}
-              handleGallery={handleGallery}
-            />
-            <SaveChatDialog
-              saveDialogVisible={saveDialogVisible}
-              setSaveDialogVisible={setSaveDialogVisible}
-              chatTitle={chatTitle}
-              setChatTitle={setChatTitle}
-              saveChat={saveChat}
-              theme={theme}
-            />
-          </KeyboardAvoidingView>
-        </SafeAreaProvider>
-      </SafeAreaView>
+        <ImagePickerModal
+          imageModalVisible={imageModalVisible}
+          setImageModalVisible={setImageModalVisible}
+          handleCamera={handleCamera}
+          handleGallery={handleGallery}
+        />
+        <SaveChatDialog
+          saveDialogVisible={saveDialogVisible}
+          setSaveDialogVisible={setSaveDialogVisible}
+          chatTitle={chatTitle}
+          setChatTitle={setChatTitle}
+          saveChat={saveChat}
+          theme={theme}
+        />
+      </KeyboardAvoidingView>
     </PaperProvider>
   );
 }
