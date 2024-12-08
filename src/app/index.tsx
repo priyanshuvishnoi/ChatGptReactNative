@@ -1,23 +1,46 @@
+import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import ChatScreen from '../ChatScreen';
-import {createStaticNavigation} from '@react-navigation/native';
-import HistoryScreen from '../HistoryScreen';
+import {useEffect} from 'react';
+import {Appearance} from 'react-native';
+import {Provider, useDispatch} from 'react-redux';
 import {RootStackParamList} from '../@types';
+import ChatScreen from '../ChatScreen';
+import HistoryScreen from '../HistoryScreen';
+import {setTheme} from '../redux/slices/themeSlice';
+import {store} from '../redux/store';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>({
   initialRouteName: 'history',
-  // initialRouteName: 'chat',
   screens: {
     history: HistoryScreen,
     chat: ChatScreen,
   },
-  screenOptions: {
-    headerShown: false,
-  },
 });
 
-const Navigation = createStaticNavigation(RootStack);
+const AppNavigator = () => {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const listener = Appearance.addChangeListener(({colorScheme}) =>
+      dispatch(setTheme(colorScheme)),
+    );
+    return () => listener.remove();
+  }, []);
+
+  return (
+    <RootStack.Navigator screenOptions={{headerShown: false}}>
+      <RootStack.Screen name="history" component={HistoryScreen} />
+      <RootStack.Screen name="chat" component={ChatScreen} />
+    </RootStack.Navigator>
+  );
+};
 
 export default function App() {
-  return <Navigation />;
+  return (
+    <Provider store={store}>
+      <NavigationContainer>
+        <AppNavigator />
+      </NavigationContainer>
+    </Provider>
+  );
 }

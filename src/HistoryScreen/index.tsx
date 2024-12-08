@@ -1,27 +1,30 @@
 import {useNavigation} from '@react-navigation/core';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import React, {useEffect, useState} from 'react';
-import {Alert, FlatList, PanResponder, Text, View} from 'react-native';
-import {Appbar, Icon, PaperProvider, useTheme, List} from 'react-native-paper';
-import {Chat, RootStackParamList} from '../@types';
-import * as DB from '../utils/db';
+import React, {useEffect} from 'react';
+import {Alert, FlatList, View} from 'react-native';
+import {Appbar, Icon, List, PaperProvider} from 'react-native-paper';
+import {useDispatch, useSelector} from 'react-redux';
+import {RootStackParamList} from '../@types';
+import {deleteChatFromDB, loadChatsFromDB} from '../redux/slices/chatSlice';
+import {toggleTheme} from '../redux/slices/themeSlice';
+import {AppDispatch, RootState} from '../redux/store';
 import {styles} from './styles';
 
 export default function HistoryScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const theme = useTheme();
-  const [chats, setChats] = useState<Chat[]>([]);
+  const chats = useSelector((state: RootState) => state?.chat?.value);
+  const theme = useSelector((state: RootState) => state?.theme?.value);
+  const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', getChats);
-
+    getChats();
     return unsubscribe;
   }, []);
 
   const getChats = async () => {
-    await DB.createTable();
-    setChats(await DB.getChats());
+    dispatch(loadChatsFromDB());
   };
 
   const deleteChat = async (chatId: number) => {
@@ -32,9 +35,8 @@ export default function HistoryScreen() {
       },
       {
         text: 'Delete',
-        onPress: async () => {
-          await DB.deleteChat(chatId);
-          getChats();
+        onPress: () => {
+          dispatch(deleteChatFromDB(chatId));
         },
         style: 'destructive',
       },
@@ -48,7 +50,13 @@ export default function HistoryScreen() {
   return (
     <PaperProvider theme={theme}>
       <Appbar.Header theme={theme}>
+        <Appbar.Action
+          icon="theme-light-dark"
+          onPress={() => dispatch(toggleTheme())}
+        />
+
         <Appbar.Content title="History" />
+
         <Appbar.Action
           icon="plus"
           onPress={() => {
@@ -57,29 +65,25 @@ export default function HistoryScreen() {
           }}
         />
       </Appbar.Header>
-      <View style={styles.container}>
+      <View
+        style={[styles.container, {backgroundColor: theme.colors.background}]}>
         {chats?.length ? (
           <FlatList
             data={chats}
             keyExtractor={item => `${item?.id}`}
             renderItem={element => (
-              // <View style={styles.chatItem}>
-              //   <View style={styles.chatItemDetails}>
-              //     <Text style={styles.chatItemText}>{element.item.title}</Text>
-              //     <Text style={styles.chatItemDate}>
-              //       {element.item.created_at}
-              //     </Text>
-              //   </View>
-              //   <View>
-              //     <Icon source="chevron-right" size={30} color="#666666" />
-              //   </View>
-              // </View>
               <List.Item
                 title={element.item.title}
-                titleStyle={styles.chatItemText}
+                titleStyle={[styles.chatItemText, {color: theme.colors.text}]}
                 description={element.item.created_at}
-                descriptionStyle={styles.chatItemDate}
-                style={styles.chatItem}
+                descriptionStyle={[
+                  styles.chatItemDate,
+                  {color: theme.colors.text},
+                ]}
+                style={[
+                  styles.chatItem,
+                  {backgroundColor: theme.colors.surface},
+                ]}
                 onLongPress={() => deleteChat(element.item.id)}
                 onPress={() => loadChat(element.item.id)}
                 right={() => (

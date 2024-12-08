@@ -4,7 +4,6 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import React, {useEffect, useRef, useState} from 'react';
 import {
   Alert,
-  Appearance,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -18,54 +17,29 @@ import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import Markdown from 'react-native-markdown-display';
 import {
   Appbar,
-  DefaultTheme,
   IconButton,
-  MD3DarkTheme,
   Provider as PaperProvider,
 } from 'react-native-paper';
-import {ChatGPTResponse, Message, RootStackParamList} from '../@types';
+import {useDispatch, useSelector} from 'react-redux';
+import {Message, RootStackParamList} from '../@types';
 import {ImagePickerModal} from '../components/ImagePickerModal';
 import SaveChatDialog from '../components/SaveChatDialog';
 import TypingIndicator from '../components/TypingIndicator';
-import client from '../utils/client';
-import * as DB from '../utils/db';
+import {saveChatToDB, updateChat} from '../redux/slices/chatSlice';
+import {
+  clearChat,
+  loadMessagesFromDB,
+  sendMessage,
+} from '../redux/slices/messageSlice';
+import {toggleTheme} from '../redux/slices/themeSlice';
+import {AppDispatch, RootState} from '../redux/store';
 import {styles} from './styles';
-
-const LightTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: '#0066cc',
-    background: '#ffffff',
-    text: '#000000',
-    surface: '#f5f5f5',
-  },
-};
-
-const DarkTheme = {
-  ...MD3DarkTheme,
-  colors: {
-    ...MD3DarkTheme.colors,
-    primary: '#1e90ff',
-    background: '#121212',
-    text: '#ffffff',
-    surface: '#1e1e1e',
-  },
-};
 
 export default function ChatScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'chat'>>();
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'system',
-      text: 'send messages in markdown format',
-      image: '',
-    },
-  ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [imageModalVisible, setImageModalVisible] = useState(false);
@@ -77,32 +51,25 @@ export default function ChatScreen() {
   const inputContainerRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
 
-  const [theme, setTheme] = useState(
-    Appearance.getColorScheme() === 'dark' ? DarkTheme : LightTheme,
-  );
+  const theme = useSelector((state: RootState) => state?.theme?.value);
+  const messages = useSelector((state: RootState) => state?.message?.value);
+
+  const dispatch = useDispatch<AppDispatch>();
 
   const initDb = async () => {
     // Create `chat_sessions` table
     const chatId = route.params?.id;
-    if (!chatId) return;
-    const messages = await DB.getMessages(chatId);
-    setMessages(messages);
-  };
 
-  useEffect(() => {
-    const listener = Appearance.addChangeListener(({colorScheme}) => {
-      setTheme(colorScheme === 'dark' ? DarkTheme : LightTheme);
-    });
-    return () => listener.remove();
-  }, []);
+    await dispatch(loadMessagesFromDB(chatId));
+
+    setTimeout(() => {
+      listRef?.current?.scrollToEnd({animated: false});
+    }, 0);
+  };
 
   useEffect(() => {
     initDb();
   }, []);
-
-  const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === LightTheme ? DarkTheme : LightTheme));
-  };
 
   const handleSend = async () => {
     if (inputText.trim() === '') return;
@@ -113,89 +80,23 @@ export default function ChatScreen() {
       text: inputText,
       image: base64String,
     };
-    setMessages(prevMessages => [...prevMessages, newMessage]);
     setInputText('');
-    listRef.current?.scrollToEnd();
-
-    const messagesToSend: any[] = messages.map(m => {
-      if (m.image) {
-        return {
-          role: m.type,
-          content: [
-            {
-              type: 'text',
-              text: m.text,
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${m.image}`,
-              },
-            },
-          ],
-        };
-      } else {
-        return {
-          role: m.type,
-          content: [
-            {
-              type: 'text',
-              text: m.text,
-            },
-          ],
-        };
-      }
-    });
-
-    if (base64String) {
-      messagesToSend.push({
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: inputText,
-          },
-          base64String && {
-            type: 'image_url',
-            image_url: {
-              url: `data:image/jpeg;base64,${base64String}`,
-            },
-          },
-        ],
-      });
-    } else {
-      messagesToSend.push({
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: inputText,
-          },
-        ],
-      });
-    }
+    setBase64String(null);
+    setTimeout(() => {
+      listRef.current?.scrollToEnd();
+      inputRef.current?.blur();
+    }, 0);
 
     try {
       setIsLoading(true);
-      const res = await client.post<ChatGPTResponse>('', {
-        model: 'gpt-4o-mini',
-        messages: messagesToSend,
-        temperature: 0.7,
-      });
-      setMessages(prevMessages => [
-        ...prevMessages,
-        {
-          id: Date.now().toString(),
-          type: 'assistant',
-          text: res.data.choices[0].message.content,
-        },
-      ]);
-      listRef.current?.scrollToEnd();
+      await dispatch(sendMessage(newMessage));
+      setTimeout(() => {
+        listRef.current?.scrollToEnd();
+      }, 0);
     } catch (e) {
       console.log(e);
     } finally {
       setIsLoading(false);
-      setBase64String(null);
     }
   };
 
@@ -289,7 +190,7 @@ export default function ChatScreen() {
     );
   };
 
-  const clearChat = () => {
+  const handleClearChat = () => {
     Alert.alert('Clear chat', 'Are you sure you want to clear this chat?', [
       {
         text: 'Cancel',
@@ -298,9 +199,8 @@ export default function ChatScreen() {
       {
         text: 'Clear',
         onPress: () => {
-          setMessages(prevMessages =>
-            prevMessages.filter(message => message.type === 'system'),
-          );
+          dispatch(clearChat());
+          setInputText('');
           setBase64String(null);
         },
         style: 'destructive',
@@ -315,7 +215,7 @@ export default function ChatScreen() {
     }
 
     try {
-      await DB.saveChatMessages(chatTitle, messages);
+      dispatch(saveChatToDB({title: chatTitle, messages}));
       Alert.alert('Success', 'Chat saved successfully!');
     } catch (e) {
       console.log(e);
@@ -334,15 +234,17 @@ export default function ChatScreen() {
         {/* App Header */}
         <Appbar.Header theme={theme}>
           <Appbar.BackAction onPress={() => navigation.goBack()} />
-          <Appbar.Action icon="theme-light-dark" onPress={toggleTheme} />
+          <Appbar.Action
+            icon="theme-light-dark"
+            onPress={() => dispatch(toggleTheme())}
+          />
           <Appbar.Content title="ChatGPT" />
           <Appbar.Action
             icon="content-save-outline"
             onPress={() => {
               if (route.params?.id) {
-                DB.updateChat(route.params.id, messages).then(() =>
-                  Alert.alert('Success', 'Chat updated successfully!'),
-                );
+                dispatch(updateChat({chatId: route.params.id, messages}));
+                Alert.alert('Success', 'Chat updated successfully!');
                 return;
               }
 
@@ -351,7 +253,7 @@ export default function ChatScreen() {
           />
           <Appbar.Action
             icon="delete-outline"
-            onPress={clearChat}
+            onPress={handleClearChat}
             color="red"
           />
         </Appbar.Header>
