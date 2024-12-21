@@ -1,9 +1,9 @@
-import {ChatGPTResponse, Message} from '../../@types';
-import {createAppSlice} from './appSlice';
+import { ChatGPTResponse, Message } from '../../@types';
+import { createAppSlice } from './appSlice';
 import * as DB from '../../utils/db';
-import {RootState} from '../store';
-import client from '../../utils/client';
-import {PayloadAction} from '@reduxjs/toolkit';
+import { RootState } from '../store';
+import { getClient } from '../../utils/client';
+import { PayloadAction } from '@reduxjs/toolkit';
 
 export interface MessageState {
   value: Message[];
@@ -28,9 +28,9 @@ export const messageSlice = createAppSlice({
       state.value.push(action.payload);
     }),
     sendMessage: create.asyncThunk(
-      async (message: Message, {getState, dispatch}) => {
+      async (message: Message, { getState, dispatch }) => {
         const messages = (getState() as RootState).message.value;
-        dispatch({type: 'message/addMessage', payload: message});
+        dispatch({ type: 'message/addMessage', payload: message });
         const messagesToSend: any[] = messages.map(m => {
           if (m.image) {
             return {
@@ -83,6 +83,7 @@ export const messageSlice = createAppSlice({
             content: message.text,
           });
         }
+        const client = await getClient();
         const res = await client.post<ChatGPTResponse>('', {
           model: 'gpt-4o-mini',
           messages: messagesToSend,
@@ -118,7 +119,7 @@ export const messageSlice = createAppSlice({
   }),
 });
 
-export const {loadMessagesFromDB, sendMessage, clearChat} =
+export const { loadMessagesFromDB, sendMessage, clearChat } =
   messageSlice.actions;
 
 export default messageSlice.reducer;

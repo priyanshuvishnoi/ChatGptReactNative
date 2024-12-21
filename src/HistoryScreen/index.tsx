@@ -9,6 +9,9 @@ import {deleteChatFromDB, loadChatsFromDB} from '../redux/slices/chatSlice';
 import {toggleTheme} from '../redux/slices/themeSlice';
 import {AppDispatch, RootState} from '../redux/store';
 import {styles} from './styles';
+import LineIcon from 'react-native-vector-icons/SimpleLineIcons';
+import { setDialogOpen } from '../redux/slices/commonSlice';
+
 
 export default function HistoryScreen() {
   const navigation =
@@ -53,6 +56,10 @@ export default function HistoryScreen() {
         <Appbar.Action
           icon="theme-light-dark"
           onPress={() => dispatch(toggleTheme())}
+        />
+        <Appbar.Action
+          icon={LineIcon.getImageSourceSync('settings')}
+          onPress={() => dispatch(setDialogOpen(true))}
         />
 
         <Appbar.Content title="History" />
