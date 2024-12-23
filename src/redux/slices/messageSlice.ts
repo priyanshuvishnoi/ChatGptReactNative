@@ -1,9 +1,9 @@
-import { ChatGPTResponse, Message } from '../../@types';
-import { createAppSlice } from './appSlice';
+import { PayloadAction } from '@reduxjs/toolkit';
+import { ChatGPTResponse, Message, MessagesToSend } from '../../@types';
+import { getClient } from '../../utils/client';
 import * as DB from '../../utils/db';
 import { RootState } from '../store';
-import { getClient } from '../../utils/client';
-import { PayloadAction } from '@reduxjs/toolkit';
+import { createAppSlice } from './appSlice';
 
 export interface MessageState {
   value: Message[];
@@ -15,7 +15,6 @@ const initialState: MessageState = {
       id: '1',
       type: 'system',
       text: 'send messages in markdown format',
-      image: '',
     },
   ],
 };
@@ -29,9 +28,15 @@ export const messageSlice = createAppSlice({
     }),
     sendMessage: create.asyncThunk(
       async (message: Message, { getState, dispatch }) => {
-        const messages = (getState() as RootState).message.value;
-        dispatch({ type: 'message/addMessage', payload: message });
-        const messagesToSend: any[] = messages.map(m => {
+        const messages: Message[] = (getState() as RootState).message.value;
+        dispatch(addMessage(message));
+
+        let messagePart = messages;
+        if (messages.length > 11) {
+          messagePart = [messages[0]].concat(messages.slice(-10));
+        }
+
+        const messagesToSend: MessagesToSend = messagePart.map(m => {
           if (m.image) {
             return {
               role: m.type,
@@ -83,6 +88,8 @@ export const messageSlice = createAppSlice({
             content: message.text,
           });
         }
+
+
         const client = await getClient();
         const res = await client.post<ChatGPTResponse>('', {
           model: 'gpt-4o-mini',
@@ -103,7 +110,7 @@ export const messageSlice = createAppSlice({
       },
     ),
     clearChat: create.reducer(state => {
-      state.value = [];
+      state.value = []
     }),
     loadMessagesFromDB: create.asyncThunk(
       (chatId?: number) => {
@@ -119,7 +126,7 @@ export const messageSlice = createAppSlice({
   }),
 });
 
-export const { loadMessagesFromDB, sendMessage, clearChat } =
+export const { loadMessagesFromDB, sendMessage, clearChat, addMessage } =
   messageSlice.actions;
 
 export default messageSlice.reducer;

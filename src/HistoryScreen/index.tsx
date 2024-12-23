@@ -1,14 +1,14 @@
-import {useNavigation} from '@react-navigation/core';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import React, {useEffect} from 'react';
-import {Alert, FlatList, View} from 'react-native';
-import {Appbar, Icon, List, PaperProvider} from 'react-native-paper';
-import {useDispatch, useSelector} from 'react-redux';
-import {RootStackParamList} from '../@types';
-import {deleteChatFromDB, loadChatsFromDB} from '../redux/slices/chatSlice';
-import {toggleTheme} from '../redux/slices/themeSlice';
-import {AppDispatch, RootState} from '../redux/store';
-import {styles} from './styles';
+import { useNavigation } from '@react-navigation/core';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useEffect } from 'react';
+import { Alert, FlatList, View } from 'react-native';
+import { Appbar, Icon, List, PaperProvider, FAB } from 'react-native-paper';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootStackParamList } from '../@types';
+import { deleteChatFromDB, loadChatsFromDB } from '../redux/slices/chatSlice';
+import { toggleTheme } from '../redux/slices/themeSlice';
+import { AppDispatch, RootState } from '../redux/store';
+import { styles } from './styles';
 import LineIcon from 'react-native-vector-icons/SimpleLineIcons';
 import { setDialogOpen } from '../redux/slices/commonSlice';
 
@@ -47,33 +47,33 @@ export default function HistoryScreen() {
   };
 
   const loadChat = async (chatId: number) => {
-    navigation.push('chat', {id: chatId});
+    navigation.push('chat', { id: chatId });
   };
 
   return (
     <PaperProvider theme={theme}>
-      <Appbar.Header theme={theme}>
+      <Appbar.Header theme={theme} >
         <Appbar.Action
           icon="theme-light-dark"
           onPress={() => dispatch(toggleTheme())}
         />
+
+        <Appbar.Content title="History" style={{ marginInline: 0 }} />
         <Appbar.Action
           icon={LineIcon.getImageSourceSync('settings')}
           onPress={() => dispatch(setDialogOpen(true))}
         />
 
-        <Appbar.Content title="History" />
-
-        <Appbar.Action
+        {/* <Appbar.Action
           icon="plus"
           onPress={() => {
             // DB.createTable();
             navigation.push('chat');
           }}
-        />
+        /> */}
       </Appbar.Header>
       <View
-        style={[styles.container, {backgroundColor: theme.colors.background}]}>
+        style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {chats?.length ? (
           <FlatList
             data={chats}
@@ -81,15 +81,15 @@ export default function HistoryScreen() {
             renderItem={element => (
               <List.Item
                 title={element.item.title}
-                titleStyle={[styles.chatItemText, {color: theme.colors.text}]}
+                titleStyle={[styles.chatItemText, { color: theme.colors.text }]}
                 description={element.item.created_at}
                 descriptionStyle={[
                   styles.chatItemDate,
-                  {color: theme.colors.text},
+                  { color: theme.colors.text },
                 ]}
                 style={[
                   styles.chatItem,
-                  {backgroundColor: theme.colors.surface},
+                  { backgroundColor: theme.colors.surface },
                 ]}
                 onLongPress={() => deleteChat(element.item.id)}
                 onPress={() => loadChat(element.item.id)}
@@ -104,6 +104,16 @@ export default function HistoryScreen() {
         ) : (
           <></>
         )}
+        <FAB
+          icon="plus"
+          label='New Chat'
+          style={[styles.FAB, {
+            backgroundColor: theme.colors.inverseOnSurface,
+            color: theme.colors.text,
+          }]}
+          onPress={() => {
+            navigation.push('chat');
+          }} />
       </View>
     </PaperProvider>
   );

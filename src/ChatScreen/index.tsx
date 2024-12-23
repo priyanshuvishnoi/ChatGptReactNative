@@ -1,7 +1,7 @@
 import Clipboard from '@react-native-clipboard/clipboard';
-import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
-import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import React, {useEffect, useRef, useState} from 'react';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -13,27 +13,27 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Markdown from 'react-native-markdown-display';
 import {
   Appbar,
   IconButton,
   Provider as PaperProvider,
 } from 'react-native-paper';
-import {useDispatch, useSelector} from 'react-redux';
-import {Message, RootStackParamList} from '../@types';
-import {ImagePickerModal} from '../components/ImagePickerModal';
+import { useDispatch, useSelector } from 'react-redux';
+import { Message, RootStackParamList } from '../@types';
+import { ImagePickerModal } from '../components/ImagePickerModal';
 import SaveChatDialog from '../components/SaveChatDialog';
 import TypingIndicator from '../components/TypingIndicator';
-import {saveChatToDB, updateChat} from '../redux/slices/chatSlice';
+import { saveChatToDB, updateChat } from '../redux/slices/chatSlice';
 import {
   clearChat,
   loadMessagesFromDB,
   sendMessage,
 } from '../redux/slices/messageSlice';
-import {toggleTheme} from '../redux/slices/themeSlice';
-import {AppDispatch, RootState} from '../redux/store';
-import {styles} from './styles';
+import { toggleTheme } from '../redux/slices/themeSlice';
+import { AppDispatch, RootState } from '../redux/store';
+import { styles } from './styles';
 
 export default function ChatScreen() {
   const navigation =
@@ -63,7 +63,7 @@ export default function ChatScreen() {
     await dispatch(loadMessagesFromDB(chatId));
 
     setTimeout(() => {
-      listRef?.current?.scrollToEnd({animated: false});
+      listRef?.current?.scrollToEnd({ animated: false });
     }, 0);
   };
 
@@ -100,7 +100,7 @@ export default function ChatScreen() {
     }
   };
 
-  const renderMessage = ({item}: {item: Message}) => {
+  const renderMessage = useCallback(({ item }: { item: Message }) => {
     const isUser = item?.type === 'user';
     return (
       <TouchableOpacity
@@ -117,27 +117,28 @@ export default function ChatScreen() {
             <View>
               {item?.image && (
                 <Image
-                  source={{uri: `data:image/jpeg;base64,${item.image}`}}
-                  style={{width: 200, height: 150}}
+                  source={{ uri: `data:image/jpeg;base64,${item.image}` }}
+                  style={{ width: 200, height: 150 }}
                 />
               )}
               <Text style={styles.messageText}>{item?.text}</Text>
             </View>
           ) : (
             <View style={styles.markdownContainer}>
-              <Markdown
+                <Markdown
                 style={{
                   ...styles.markdown,
-                  body: {color: theme.colors.text},
-                }}>
+                    body: { color: theme.colors.text },
+                  }}
+                >
                 {item?.text}
-              </Markdown>
+                </Markdown>
             </View>
           )}
         </View>
       </TouchableOpacity>
     );
-  };
+  }, []);
 
   const handleCamera = () => {
     setBase64String(null);
@@ -215,7 +216,7 @@ export default function ChatScreen() {
     }
 
     try {
-      dispatch(saveChatToDB({title: chatTitle, messages}));
+      dispatch(saveChatToDB({ title: chatTitle, messages }));
       Alert.alert('Success', 'Chat saved successfully!');
     } catch (e) {
       console.log(e);
@@ -229,7 +230,7 @@ export default function ChatScreen() {
   return (
     <PaperProvider theme={theme}>
       <KeyboardAvoidingView
-        style={[styles.container, {backgroundColor: theme.colors.background}]}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* App Header */}
         <Appbar.Header theme={theme}>
@@ -243,7 +244,7 @@ export default function ChatScreen() {
             icon="content-save-outline"
             onPress={() => {
               if (route.params?.id) {
-                dispatch(updateChat({chatId: route.params.id, messages}));
+                dispatch(updateChat({ chatId: route.params.id, messages }));
                 Alert.alert('Success', 'Chat updated successfully!');
                 return;
               }
@@ -265,7 +266,7 @@ export default function ChatScreen() {
           renderItem={renderMessage}
           contentContainerStyle={[
             styles.chatArea,
-            {backgroundColor: theme.colors.background},
+            { backgroundColor: theme.colors.background },
           ]}
           ref={listRef}
         />
@@ -275,7 +276,7 @@ export default function ChatScreen() {
         <View
           style={[
             styles.inputContainer,
-            {backgroundColor: theme.colors.surface},
+            { backgroundColor: theme.colors.surface },
           ]}
           ref={inputContainerRef}>
           {!base64String ? (
@@ -289,15 +290,15 @@ export default function ChatScreen() {
               style={styles.cameraIcon}
             />
           ) : (
-            <View style={[styles.cameraIcon, {paddingInline: 10}]}>
+              <View style={[styles.cameraIcon, { paddingInline: 10 }]}>
               <TouchableOpacity
                 onPress={() => {
                   setBase64String(null);
                   setImageModalVisible(true);
                 }}>
                 <Image
-                  source={{uri: `data:image/jpeg;base64,${base64String}`}}
-                  style={{width: 30, height: 30}}
+                    source={{ uri: `data:image/jpeg;base64,${base64String}` }}
+                    style={{ width: 30, height: 30 }}
                 />
               </TouchableOpacity>
             </View>
@@ -317,7 +318,7 @@ export default function ChatScreen() {
             ref={inputRef}
           />
           <TouchableOpacity
-            style={[styles.sendButton, {backgroundColor: theme.colors.primary}]}
+            style={[styles.sendButton, { backgroundColor: theme.colors.primary }]}
             onPress={handleSend}>
             <Text style={styles.sendButtonText}>Send</Text>
           </TouchableOpacity>

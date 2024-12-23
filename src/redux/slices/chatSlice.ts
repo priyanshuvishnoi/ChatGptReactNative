@@ -1,6 +1,6 @@
-import {Chat, Message} from '../../@types';
+import { Chat, Message } from '../../@types';
 import * as DB from '../../utils/db';
-import {createAppSlice} from './appSlice';
+import { createAppSlice } from './appSlice';
 
 export interface ChatState {
   value: Chat[];
@@ -61,7 +61,7 @@ export const chatSlice = createAppSlice({
   }),
 });
 
-export const {loadChatsFromDB, deleteChatFromDB, saveChatToDB, updateChat} =
+export const { loadChatsFromDB, deleteChatFromDB, saveChatToDB, updateChat } =
   chatSlice.actions;
 
 export default chatSlice.reducer;

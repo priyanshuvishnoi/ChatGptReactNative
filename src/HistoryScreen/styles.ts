@@ -26,5 +26,11 @@ export const styles = StyleSheet.create({
     },
     chatRightIcon: {
         justifyContent: 'center',
+    },
+    FAB: {
+        position: 'absolute',
+        margin: 16,
+        right: 0,
+        bottom: 30,
     }
 });

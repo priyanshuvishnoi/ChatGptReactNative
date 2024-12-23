@@ -6,11 +6,11 @@ import { Appearance } from 'react-native';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { RootStackParamList } from '../@types';
 import ChatScreen from '../ChatScreen';
+import { InputDialog } from '../components/InputDialog';
 import HistoryScreen from '../HistoryScreen';
 import { setDialogOpen } from '../redux/slices/commonSlice';
 import { setTheme } from '../redux/slices/themeSlice';
 import { AppDispatch, RootState, store } from '../redux/store';
-import { InputDialog } from '../components/InputDialog';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>({
   initialRouteName: 'history',
@@ -20,7 +20,7 @@ const RootStack = createNativeStackNavigator<RootStackParamList>({
   },
 });
 
-const AppNavigator = () => {
+function AppNavigator() {
   const dispatch = useDispatch<AppDispatch>();
   const commonState = useSelector((state: RootState) => state.common);
 

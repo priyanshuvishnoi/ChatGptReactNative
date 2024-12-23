@@ -57,5 +57,20 @@ export type Chat = {
 
 export type RootStackParamList = {
   history: undefined;
-  chat: {id: number} | undefined;
+  chat: { id: number } | undefined;
 };
+
+export type MessagesToSend = {
+  role: "user" | "assistant" | "system";
+  content: ({
+    type: string;
+    text: string;
+    image_url?: undefined;
+  } | {
+    type: string;
+    image_url: {
+      url: string;
+    };
+    text?: undefined;
+  })[] | string;
+}[]

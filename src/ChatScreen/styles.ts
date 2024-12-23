@@ -59,8 +59,8 @@ export const styles = StyleSheet.create({
         flexShrink: 1,
     },
     markdown: {
-        body: {
-            color: '#000',
-        },
+        // body: {
+        //     color: '#000',
+        // },
     } as any,
 });
