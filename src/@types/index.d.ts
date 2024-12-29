@@ -45,14 +45,8 @@ export type Message = {
   id: string;
   type: 'user' | 'assistant' | 'system';
   text: string;
-  image?: string | null;
+  images: string[];
   inDb?: boolean;
-};
-
-export type Chat = {
-  id: number;
-  title: string;
-  created_at: string;
 };
 
 export type RootStackParamList = {
@@ -74,3 +68,10 @@ export type MessagesToSend = {
     text?: undefined;
   })[] | string;
 }[]
+
+
+export type Chat = {
+  id: number;
+  title: string;
+  createdAt: string;
+}

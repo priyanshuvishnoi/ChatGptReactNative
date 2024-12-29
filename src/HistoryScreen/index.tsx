@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Alert, FlatList, View } from 'react-native';
 import { Appbar, Icon, List, PaperProvider, FAB } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
-import { RootStackParamList } from '../@types';
+import type { RootStackParamList } from '../@types';
 import { deleteChatFromDB, loadChatsFromDB } from '../redux/slices/chatSlice';
 import { toggleTheme } from '../redux/slices/themeSlice';
 import { AppDispatch, RootState } from '../redux/store';
@@ -82,7 +82,7 @@ export default function HistoryScreen() {
               <List.Item
                 title={element.item.title}
                 titleStyle={[styles.chatItemText, { color: theme.colors.text }]}
-                description={element.item.created_at}
+                description={element.item.createdAt}
                 descriptionStyle={[
                   styles.chatItemDate,
                   { color: theme.colors.text },
@@ -101,9 +101,7 @@ export default function HistoryScreen() {
               />
             )}
           />
-        ) : (
-          <></>
-        )}
+        ) : null}
         <FAB
           icon="plus"
           label='New Chat'

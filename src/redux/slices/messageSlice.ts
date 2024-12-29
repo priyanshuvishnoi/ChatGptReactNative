@@ -1,7 +1,8 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { ChatGPTResponse, Message, MessagesToSend } from '../../@types';
+import type { ChatGPTResponse, Message, MessagesToSend } from '../../@types';
+import { dataSource } from '../../db';
+import { ChatEntity } from '../../db/entity/Chat';
 import { getClient } from '../../utils/client';
-import * as DB from '../../utils/db';
 import { RootState } from '../store';
 import { createAppSlice } from './appSlice';
 
@@ -15,6 +16,7 @@ const initialState: MessageState = {
       id: '1',
       type: 'system',
       text: 'send messages in markdown format',
+      images: []
     },
   ],
 };
@@ -37,7 +39,7 @@ export const messageSlice = createAppSlice({
         }
 
         const messagesToSend: MessagesToSend = messagePart.map(m => {
-          if (m.image) {
+          if (m.images?.length) {
             return {
               role: m.type,
               content: [
@@ -45,12 +47,12 @@ export const messageSlice = createAppSlice({
                   type: 'text',
                   text: m.text,
                 },
-                {
+                ...m.images.map(image => ({
                   type: 'image_url',
                   image_url: {
-                    url: `data:image/jpeg;base64,${m.image}`,
+                    url: `data:image/jpeg;base64,${image}`,
                   },
-                },
+                }))
               ],
             };
           } else {
@@ -66,7 +68,7 @@ export const messageSlice = createAppSlice({
           }
         });
 
-        if (message.image) {
+        if (message.images?.length) {
           messagesToSend.push({
             role: 'user',
             content: [
@@ -74,12 +76,14 @@ export const messageSlice = createAppSlice({
                 type: 'text',
                 text: message.text,
               },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${message.image}`,
-                },
-              },
+              ...message.images.map(image => (
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${image}`,
+                  },
+                }
+              ))
             ],
           });
         } else {
@@ -88,16 +92,20 @@ export const messageSlice = createAppSlice({
             content: message.text,
           });
         }
+        return ''
+        try {
 
+          const client = await getClient();
+          const res = await client.post<ChatGPTResponse>('', {
+            model: 'gpt-4o-mini',
+            messages: messagesToSend,
+            temperature: 0.7,
+          });
+          return res?.data?.choices[0]?.message?.content;
+        } catch (error) {
+          console.log(error);
+        }
 
-        const client = await getClient();
-        const res = await client.post<ChatGPTResponse>('', {
-          model: 'gpt-4o-mini',
-          messages: messagesToSend,
-          temperature: 0.7,
-        });
-
-        return res?.data?.choices[0]?.message?.content;
       },
       {
         fulfilled: (state, action) => {
@@ -105,6 +113,7 @@ export const messageSlice = createAppSlice({
             id: Date.now().toString(),
             type: 'assistant',
             text: action.payload,
+            images: []
           });
         },
       },
@@ -113,13 +122,19 @@ export const messageSlice = createAppSlice({
       state.value = []
     }),
     loadMessagesFromDB: create.asyncThunk(
-      (chatId?: number) => {
+      async (chatId?: number) => {
         if (!chatId) return [];
-        return DB.getMessages(chatId);
+
+        const chatRepo = dataSource.getRepository<ChatEntity>(ChatEntity);
+        const chats = await chatRepo.find({ where: { id: chatId }, relations: { messages: true } });
+        if (chats.length === 0) return [];
+        const chat = chats[0];
+        return chat?.messages;
       },
       {
         fulfilled: (state, action) => {
-          state.value = action.payload;
+          state.value = action.payload.map(m => m.toMessage())
+          console.log(state.value)
         },
       },
     ),

@@ -4,15 +4,19 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { useEffect } from 'react';
 import { Appearance } from 'react-native';
 import { Provider, useDispatch, useSelector } from 'react-redux';
-import { RootStackParamList } from '../@types';
+import 'reflect-metadata';
+import type { RootStackParamList } from '../@types';
 import ChatScreen from '../ChatScreen';
 import { InputDialog } from '../components/InputDialog';
+import { initDB } from '../db';
 import HistoryScreen from '../HistoryScreen';
 import { setDialogOpen } from '../redux/slices/commonSlice';
 import { setTheme } from '../redux/slices/themeSlice';
 import { AppDispatch, RootState, store } from '../redux/store';
 
+
 const RootStack = createNativeStackNavigator<RootStackParamList>({
+  id: undefined,
   initialRouteName: 'history',
   screens: {
     history: HistoryScreen,
@@ -34,6 +38,8 @@ function AppNavigator() {
     const listener = Appearance.addChangeListener(({ colorScheme }) =>
       dispatch(setTheme(colorScheme)),
     );
+
+    initDB();
     return () => listener.remove();
   }, []);
 
@@ -48,7 +54,7 @@ function AppNavigator() {
           dispatch(setDialogOpen(false))
         }}
       />
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Navigator screenOptions={{ headerShown: false }} id={undefined}>
         <RootStack.Screen name="history" component={HistoryScreen} />
         <RootStack.Screen name="chat" component={ChatScreen} />
       </RootStack.Navigator>

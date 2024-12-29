@@ -18,6 +18,7 @@ export const styles = StyleSheet.create({
     userMessage: {
         alignSelf: 'flex-end',
         backgroundColor: '#0066cc',
+
     },
     botMessage: {
         alignSelf: 'flex-start',
@@ -63,4 +64,10 @@ export const styles = StyleSheet.create({
         //     color: '#000',
         // },
     } as any,
+    image: {
+        flex: 1,
+        height: 100,
+        width: 100,
+    },
+
 });
