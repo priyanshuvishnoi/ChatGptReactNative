@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
     container: {
@@ -18,10 +18,10 @@ export const styles = StyleSheet.create({
     userMessage: {
         alignSelf: 'flex-end',
         backgroundColor: '#0066cc',
-
     },
     botMessage: {
         alignSelf: 'flex-start',
+        width: '80%',
     },
     messageText: {
         color: '#fff',
@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
         padding: 10,
         borderTopWidth: 1,
         borderColor: '#ccc',
-        paddingBottom: 10
+        paddingBottom: 10,
     },
     cameraIcon: {
         marginHorizontal: 5,
@@ -64,10 +64,13 @@ export const styles = StyleSheet.create({
         //     color: '#000',
         // },
     } as any,
-    image: {
-        flex: 1,
+    imageContainer: {
+        // marginHorizontal: 5,
+        width: '32%',
         height: 100,
-        width: 100,
     },
-
+    image: {
+        width: '100%',
+        height: '100%',
+    }
 });

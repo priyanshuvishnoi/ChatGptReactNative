@@ -11,6 +11,7 @@ import { AppDispatch, RootState } from '../redux/store';
 import { styles } from './styles';
 import LineIcon from 'react-native-vector-icons/SimpleLineIcons';
 import { setDialogOpen } from '../redux/slices/commonSlice';
+import { initDB } from '../db';
 
 
 export default function HistoryScreen() {

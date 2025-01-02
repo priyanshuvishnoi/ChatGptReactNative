@@ -1,6 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import type { ChatGPTResponse, Message, MessagesToSend } from '../../@types';
-import { dataSource } from '../../db';
+import { getDB } from '../../db';
 import { ChatEntity } from '../../db/entity/Chat';
 import { getClient } from '../../utils/client';
 import { RootState } from '../store';
@@ -16,7 +16,7 @@ const initialState: MessageState = {
       id: '1',
       type: 'system',
       text: 'send messages in markdown format',
-      images: []
+      images: [],
     },
   ],
 };
@@ -52,7 +52,7 @@ export const messageSlice = createAppSlice({
                   image_url: {
                     url: `data:image/jpeg;base64,${image}`,
                   },
-                }))
+                })),
               ],
             };
           } else {
@@ -76,14 +76,12 @@ export const messageSlice = createAppSlice({
                 type: 'text',
                 text: message.text,
               },
-              ...message.images.map(image => (
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${image}`,
-                  },
-                }
-              ))
+              ...message.images.map(image => ({
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${image}`,
+                },
+              })),
             ],
           });
         } else {
@@ -92,9 +90,7 @@ export const messageSlice = createAppSlice({
             content: message.text,
           });
         }
-        return ''
         try {
-
           const client = await getClient();
           const res = await client.post<ChatGPTResponse>('', {
             model: 'gpt-4o-mini',
@@ -105,7 +101,6 @@ export const messageSlice = createAppSlice({
         } catch (error) {
           console.log(error);
         }
-
       },
       {
         fulfilled: (state, action) => {
@@ -113,28 +108,32 @@ export const messageSlice = createAppSlice({
             id: Date.now().toString(),
             type: 'assistant',
             text: action.payload,
-            images: []
+            images: [],
           });
         },
       },
     ),
     clearChat: create.reducer(state => {
-      state.value = []
+      state.value = [];
     }),
     loadMessagesFromDB: create.asyncThunk(
       async (chatId?: number) => {
         if (!chatId) return [];
 
-        const chatRepo = dataSource.getRepository<ChatEntity>(ChatEntity);
-        const chats = await chatRepo.find({ where: { id: chatId }, relations: { messages: true } });
+        const db = await getDB()
+        const chatRepo = db.getRepository<ChatEntity>(ChatEntity);
+        const chats = await chatRepo.find({
+          where: { id: chatId },
+          relations: { messages: true },
+        });
         if (chats.length === 0) return [];
         const chat = chats[0];
         return chat?.messages;
       },
       {
         fulfilled: (state, action) => {
-          state.value = action.payload.map(m => m.toMessage())
-          console.log(state.value)
+          state.value = action.payload;
+          console.log(state.value);
         },
       },
     ),

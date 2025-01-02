@@ -1,12 +1,11 @@
-import { View, Text, Alert, Image, TouchableOpacity, FlatList } from 'react-native'
-import React from 'react'
-import Markdown from 'react-native-markdown-display';
-import { styles } from '../ChatScreen/styles';
 import Clipboard from '@react-native-clipboard/clipboard';
-import type { Message } from '../@types';
+import React from 'react';
+import { Alert, FlatList, Image, Text, TouchableOpacity, View } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { useSelector } from 'react-redux';
-import { RootState } from '../redux/store';
+import { styles } from '../ChatScreen/styles';
 import { MessageEntity } from '../db/entity/Message';
+import { RootState } from '../redux/store';
 
 type Props = { item: MessageEntity }
 
@@ -32,15 +31,20 @@ export default function MessageBubble({ item }: Props) {
                                 data={item.images}
                                 keyExtractor={item => item}
                                 renderItem={({ item, index }) => (
-                                    <Image
-                                        source={{ uri: `data:image/jpeg;base64,${item}` }}
-                                        style={styles.image}
-                                    />
+                                    <View
+                                        style={styles.imageContainer}
+                                    >
+                                        <Image
+                                            source={{ uri: `data:image/jpeg;base64,${item}` }}
+                                            style={styles.image}
+                                            resizeMode="cover"
+                                        />
+                                    </View>
                                 )}
-                                numColumns={2}
+                                numColumns={3}
+                                contentContainerStyle={{ gap: 5 }}
+                                columnWrapperStyle={{ gap: 5 }}
                             />
-
-
                         ) : null}
                         <Text style={styles.messageText}>{item?.text}</Text>
                     </View>

@@ -16,6 +16,6 @@ export class ChatEntity {
     @UpdateDateColumn()
     updatedAt: string;
 
-    @OneToMany(() => MessageEntity, m => m.chat, { cascade: ['insert', 'update', 'remove'] })
+    @OneToMany(() => MessageEntity, m => m.chat, { cascade: ["insert", "update", "remove", "soft-remove", "recover"] })
     messages: MessageEntity[];
 }

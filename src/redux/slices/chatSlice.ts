@@ -1,5 +1,5 @@
 import type { Chat, Message } from '../../@types';
-import { dataSource } from '../../db';
+import { getDB } from '../../db';
 import { ChatEntity } from '../../db/entity/Chat';
 import { MessageEntity } from '../../db/entity/Message';
 import { createAppSlice } from './appSlice';
@@ -29,7 +29,8 @@ export const chatSlice = createAppSlice({
   reducers: create => ({
     saveChatToDB: create.asyncThunk(async (payload: SaveChatToDBPayload) => {
       try {
-        const chatRepo = dataSource.getRepository(ChatEntity);
+        const db = await getDB()
+        const chatRepo = db.getRepository(ChatEntity);
 
         const messageEntities = payload.messages.map(m => new MessageEntity(m));
 
@@ -43,7 +44,8 @@ export const chatSlice = createAppSlice({
     }),
 
     updateChat: create.asyncThunk(async (payload: UpdateChatPayload) => {
-      const chatRepo = dataSource.getRepository(ChatEntity);
+      const db = await getDB()
+      const chatRepo = db.getRepository(ChatEntity);
 
       const chats = await chatRepo.find({ where: { id: payload.chatId }, relations: { messages: true } });
       if (!chats?.length) return;
@@ -57,11 +59,15 @@ export const chatSlice = createAppSlice({
 
     deleteChatFromDB: create.asyncThunk(
       async (chatId: number): Promise<Chat[]> => {
-        const chatRepo = dataSource.getRepository(ChatEntity);
+        const db = await getDB()
+        const chatRepo = db.getRepository(ChatEntity);
         try {
-          const chat = await chatRepo.findOneBy({ id: chatId });
+          const chat = await chatRepo.find({ where: { id: chatId }, relations: { messages: true } });
           if (!chat) return;
-          await chatRepo.remove(chat);
+          db.transaction(async tx => {
+            await tx.remove(chat[0].messages);
+            await tx.remove(chat);
+          })
         } catch (e) {
           console.log(e);
         } finally {
@@ -83,7 +89,8 @@ export const chatSlice = createAppSlice({
     loadChatsFromDB: create.asyncThunk(
       async (): Promise<Chat[]> => {
         try {
-          const chatRepo = dataSource.getRepository(ChatEntity);
+          const db = await getDB()
+          const chatRepo = db.getRepository(ChatEntity);
           const chats = await chatRepo.find();
           return chats.map(c => ({
             id: c.id,

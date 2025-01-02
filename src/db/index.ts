@@ -2,7 +2,7 @@ import { DataSource } from 'typeorm'
 import { ChatEntity } from './entity/Chat';
 import { MessageEntity } from './entity/Message';
 
-export const dataSource = new DataSource({
+const dataSource = new DataSource({
     type: 'react-native',
     database: 'chat.db',
     location: 'default',
@@ -23,4 +23,9 @@ export async function initDB() {
     } catch (e) {
         console.log(e)
     }
+}
+
+export const getDB = async () => {
+    await initDB()
+    return dataSource;
 }

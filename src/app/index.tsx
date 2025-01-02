@@ -8,7 +8,6 @@ import 'reflect-metadata';
 import type { RootStackParamList } from '../@types';
 import ChatScreen from '../ChatScreen';
 import { InputDialog } from '../components/InputDialog';
-import { initDB } from '../db';
 import HistoryScreen from '../HistoryScreen';
 import { setDialogOpen } from '../redux/slices/commonSlice';
 import { setTheme } from '../redux/slices/themeSlice';
@@ -39,7 +38,6 @@ function AppNavigator() {
       dispatch(setTheme(colorScheme)),
     );
 
-    initDB();
     return () => listener.remove();
   }, []);
 
